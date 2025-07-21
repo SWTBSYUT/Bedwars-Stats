@@ -12,39 +12,106 @@
     th { background: #2d3748; color: #ffd700; font-size: 1.1em; position: sticky; top: 0; z-index: 2; }
     tr:nth-child(even) td { background: #20232a; }
     tr:hover td { background: #3a4256; color: #ffd700; transition: 0.2s; }
+    .summary { background: #232a36; border-radius: 10px; box-shadow: 0 4px 24px #0008; margin: 20px auto; padding: 24px; max-width: 600px; }
+    .summary h2 { color: #ffd700; margin-bottom: 12px; }
+    .summary span { font-size: 1.2em; margin-right: 24px; }
+    .player-link { color: #ffd700; cursor: pointer; text-decoration: underline; }
+    .player-link:hover { color: #fff700; }
     @media (max-width: 800px) { th, td { font-size: 0.9em; min-width: 60px; } }
   </style>
 </head>
 <body>
   <h1>Bedwars 戦績</h1>
+  <div class="summary" id="summary" style="display:none"></div>
   <div class="table-container">
     <div id="table_div">読み込み中...</div>
   </div>
   <script>
-    // 公開ページのURL
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNGSvnFO0Vf01tCe4a46CGk3eTPe60UCVcgiXOpJAe1Jd3-tmj-rNpbJAAlZcihaN99XgkAbIOuUIE/pubhtml?gid=0&single=true";
+
+    let allRows = [];
+    let header = [];
+
+    function showSummary(player) {
+      // 戦績集計
+      let games = 0, wins = 0, kills = 0;
+      let winCol = header.indexOf("勝った人");
+      let playerCol = header.indexOf("参加した人");
+      let killsCol = header.findIndex(h => h.includes("キル")); // キル数列があれば
+      let rows = [];
+      allRows.forEach(row => {
+        if (row[playerCol] && row[playerCol].includes(player)) {
+          games++;
+          if (winCol !== -1 && row[winCol] && row[winCol].includes(player)) wins++;
+          if (killsCol !== -1 && row[killsCol]) kills += parseInt(row[killsCol]) || 0;
+          rows.push(row);
+        }
+      });
+      let html = `<h2>${player} の戦績</h2>`;
+      html += `<span>参加試合数: <b>${games}</b></span>`;
+      html += `<span>勝利数: <b>${wins}</b></span>`;
+      if (killsCol !== -1) html += `<span>キル数: <b>${kills}</b></span>`;
+      html += `<hr style="margin:16px 0;">`;
+      html += `<b>参加した試合一覧</b><br>`;
+      html += `<table><thead><tr>`;
+      header.forEach(h => html += `<th>${h}</th>`);
+      html += `</tr></thead><tbody>`;
+      rows.forEach(row => {
+        html += "<tr>";
+        row.forEach(cell => html += `<td>${cell}</td>`);
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+      document.getElementById("summary").innerHTML = html;
+      document.getElementById("summary").style.display = "block";
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
 
     fetch(sheetUrl)
       .then(res => res.text())
       .then(html => {
-        // DOMとしてパース
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
-        // Google Sheetsのテーブルは「.waffle」クラス
         const table = doc.querySelector(".waffle");
         if (table) {
-          // スタイルを上書き
-          table.style.width = "100%";
-          table.style.background = "none";
-          table.style.borderCollapse = "collapse";
-          table.querySelectorAll("th, td").forEach(cell => {
-            cell.style.background = "none";
-            cell.style.color = "";
-            cell.style.border = "";
-            cell.style.padding = "";
+          // ヘッダー取得
+          header = [];
+          table.querySelectorAll("tr")[0].querySelectorAll("th,td").forEach(cell => header.push(cell.textContent.trim()));
+          // データ取得
+          allRows = [];
+          table.querySelectorAll("tr").forEach((tr, i) => {
+            if (i === 0) return;
+            let row = [];
+            tr.querySelectorAll("td").forEach(td => row.push(td.textContent.trim()));
+            if (row.length > 0 && row.some(cell => cell)) allRows.push(row);
           });
-          document.getElementById("table_div").innerHTML = "";
-          document.getElementById("table_div").appendChild(table);
+          // プレイヤー一覧を抽出
+          let playerCol = header.indexOf("参加した人");
+          let players = new Set();
+          allRows.forEach(row => {
+            if (row[playerCol]) row[playerCol].split(/[、, ]/).forEach(name => players.add(name.trim()));
+          });
+          // テーブル生成
+          let htmlTable = "<table><thead><tr>";
+          header.forEach(h => htmlTable += `<th>${h}</th>`);
+          htmlTable += "</tr></thead><tbody>";
+          allRows.forEach(row => {
+            htmlTable += "<tr>";
+            row.forEach((cell, idx) => {
+              // 参加した人列はリンク化
+              if (idx === playerCol && cell) {
+                let names = cell.split(/[、, ]/).map(name => `<span class="player-link" onclick="showSummary('${name.trim()}')">${name.trim()}</span>`);
+                htmlTable += `<td>${names.join(", ")}</td>`;
+              } else {
+                htmlTable += `<td>${cell}</td>`;
+              }
+            });
+            htmlTable += "</tr>";
+          });
+          htmlTable += "</tbody></table>";
+          document.getElementById("table_div").innerHTML = htmlTable;
+          // プレイヤー名クリックで個人戦績表示
+          window.showSummary = showSummary;
         } else {
           document.getElementById("table_div").innerHTML = "データの取得に失敗しました。";
         }
