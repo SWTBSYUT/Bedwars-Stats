@@ -4,35 +4,56 @@
   <meta charset="UTF-8">
   <title>Bedwars 戦績</title>
   <style>
-    body { font-family: 'Segoe UI', 'Meiryo', sans-serif; background: #181c24; color: #fff; margin: 0; }
-    h1 { text-align: center; margin-top: 32px; letter-spacing: 2px; }
-    #table_div { margin: 40px auto; width: 95%; max-width: 1200px; }
-    .google-visualization-table-table {
+    body {
+      font-family: 'Segoe UI', 'Meiryo', sans-serif;
+      background: #181c24;
+      color: #fff;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 32px;
+      letter-spacing: 2px;
+    }
+    .table-container {
+      margin: 40px auto;
+      width: 95%;
+      max-width: 1200px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
       background: #232a36;
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 4px 24px #0008;
+      margin-bottom: 40px;
     }
-    .google-visualization-table-th {
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #333;
+      text-align: center;
+      min-width: 80px;
+    }
+    th {
       background: #2d3748;
       color: #ffd700;
       font-size: 1.1em;
-      padding: 12px 8px;
-      border-bottom: 2px solid #444;
+      position: sticky;
+      top: 0;
+      z-index: 2;
     }
-    .google-visualization-table-td {
-      background: #232a36;
-      color: #fff;
-      padding: 10px 8px;
-      border-bottom: 1px solid #333;
-    }
-    .google-visualization-table-tr:nth-child(even) .google-visualization-table-td {
+    tr:nth-child(even) td {
       background: #20232a;
     }
-    .google-visualization-table-tr:hover .google-visualization-table-td {
+    tr:hover td {
       background: #3a4256;
       color: #ffd700;
       transition: 0.2s;
+    }
+    @media (max-width: 800px) {
+      th, td { font-size: 0.9em; min-width: 60px; }
     }
   </style>
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -41,7 +62,7 @@
     google.charts.setOnLoadCallback(drawTable);
 
     function drawTable() {
-      var sheetId = '1vSNGSvnFO0Vf01tCe4a46CGk3eTPe60UCVcgiXOpJAe1Jd3-tmj-rNpbJAAlZcihaN99XgkAbIOuUIE';
+      var sheetId = '1acqE2JHYntl5o3ShigNhcqSM3PTRkWgdhXsJ4jm5r3c';
       var sheetName = 'data';
       var queryString = encodeURIComponent('SELECT *');
       var query = new google.visualization.Query(
@@ -53,25 +74,29 @@
           return;
         }
         var data = response.getDataTable();
-        var table = new google.visualization.Table(document.getElementById('table_div'));
-        table.draw(data, {
-          showRowNumber: true,
-          width: '100%',
-          height: '100%',
-          alternatingRowStyle: true,
-          cssClassNames: {
-            headerRow: 'google-visualization-table-tr',
-            tableCell: 'google-visualization-table-td',
-            headerCell: 'google-visualization-table-th',
-            rowNumberCell: 'google-visualization-table-td'
+        // テーブルを自作デザインで描画
+        let html = "<table><thead><tr>";
+        for (let i = 0; i < data.getNumberOfColumns(); i++) {
+          html += `<th>${data.getColumnLabel(i)}</th>`;
+        }
+        html += "</tr></thead><tbody>";
+        for (let r = 0; r < data.getNumberOfRows(); r++) {
+          html += "<tr>";
+          for (let c = 0; c < data.getNumberOfColumns(); c++) {
+            html += `<td>${data.getValue(r, c) ?? ""}</td>`;
           }
-        });
+          html += "</tr>";
+        }
+        html += "</tbody></table>";
+        document.getElementById('table_div').innerHTML = html;
       });
     }
   </script>
 </head>
 <body>
   <h1>Bedwars 戦績</h1>
-  <div id="table_div"></div>
+  <div class="table-container">
+    <div id="table_div"></div>
+  </div>
 </body>
 </html>
