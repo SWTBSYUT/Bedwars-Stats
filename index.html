@@ -2,101 +2,56 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Bedwars 戦績</title>
+  <title>Bedwars 戦績（スクレイピング版）</title>
   <style>
-    body {
-      font-family: 'Segoe UI', 'Meiryo', sans-serif;
-      background: #181c24;
-      color: #fff;
-      margin: 0;
-    }
-    h1 {
-      text-align: center;
-      margin-top: 32px;
-      letter-spacing: 2px;
-    }
-    .table-container {
-      margin: 40px auto;
-      width: 95%;
-      max-width: 1200px;
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #232a36;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 4px 24px #0008;
-      margin-bottom: 40px;
-    }
-    th, td {
-      padding: 10px 8px;
-      border-bottom: 1px solid #333;
-      text-align: center;
-      min-width: 80px;
-    }
-    th {
-      background: #2d3748;
-      color: #ffd700;
-      font-size: 1.1em;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-    tr:nth-child(even) td {
-      background: #20232a;
-    }
-    tr:hover td {
-      background: #3a4256;
-      color: #ffd700;
-      transition: 0.2s;
-    }
-    @media (max-width: 800px) {
-      th, td { font-size: 0.9em; min-width: 60px; }
-    }
+    body { font-family: 'Segoe UI', 'Meiryo', sans-serif; background: #181c24; color: #fff; margin: 0; }
+    h1 { text-align: center; margin-top: 32px; letter-spacing: 2px; }
+    .table-container { margin: 40px auto; width: 95%; max-width: 1200px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #232a36; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 24px #0008; margin-bottom: 40px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #333; text-align: center; min-width: 80px; }
+    th { background: #2d3748; color: #ffd700; font-size: 1.1em; position: sticky; top: 0; z-index: 2; }
+    tr:nth-child(even) td { background: #20232a; }
+    tr:hover td { background: #3a4256; color: #ffd700; transition: 0.2s; }
+    @media (max-width: 800px) { th, td { font-size: 0.9em; min-width: 60px; } }
   </style>
-  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-  <script type="text/javascript">
-    google.charts.load('current', {'packages':['table']});
-    google.charts.setOnLoadCallback(drawTable);
-
-    function drawTable() {
-      var sheetId = '1acqE2JHYntl5o3ShigNhcqSM3PTRkWgdhXsJ4jm5r3c';
-      var sheetName = 'data';
-      var queryString = encodeURIComponent('SELECT *');
-      var query = new google.visualization.Query(
-        'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?sheet=' + sheetName + '&tq=' + queryString
-      );
-      query.send(function(response) {
-        if (response.isError()) {
-          document.getElementById('table_div').innerHTML = '<div style="color:red;">データの取得に失敗しました: ' + response.getMessage() + '</div>';
-          return;
-        }
-        var data = response.getDataTable();
-        // テーブルを自作デザインで描画
-        let html = "<table><thead><tr>";
-        for (let i = 0; i < data.getNumberOfColumns(); i++) {
-          html += `<th>${data.getColumnLabel(i)}</th>`;
-        }
-        html += "</tr></thead><tbody>";
-        for (let r = 0; r < data.getNumberOfRows(); r++) {
-          html += "<tr>";
-          for (let c = 0; c < data.getNumberOfColumns(); c++) {
-            html += `<td>${data.getValue(r, c) ?? ""}</td>`;
-          }
-          html += "</tr>";
-        }
-        html += "</tbody></table>";
-        document.getElementById('table_div').innerHTML = html;
-      });
-    }
-  </script>
 </head>
 <body>
   <h1>Bedwars 戦績</h1>
   <div class="table-container">
-    <div id="table_div"></div>
+    <div id="table_div">読み込み中...</div>
   </div>
+  <script>
+    // 公開ページのURL
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNGSvnFO0Vf01tCe4a46CGk3eTPe60UCVcgiXOpJAe1Jd3-tmj-rNpbJAAlZcihaN99XgkAbIOuUIE/pubhtml?gid=0&single=true";
+
+    fetch(sheetUrl)
+      .then(res => res.text())
+      .then(html => {
+        // DOMとしてパース
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        // Google Sheetsのテーブルは「.waffle」クラス
+        const table = doc.querySelector(".waffle");
+        if (table) {
+          // スタイルを上書き
+          table.style.width = "100%";
+          table.style.background = "none";
+          table.style.borderCollapse = "collapse";
+          table.querySelectorAll("th, td").forEach(cell => {
+            cell.style.background = "none";
+            cell.style.color = "";
+            cell.style.border = "";
+            cell.style.padding = "";
+          });
+          document.getElementById("table_div").innerHTML = "";
+          document.getElementById("table_div").appendChild(table);
+        } else {
+          document.getElementById("table_div").innerHTML = "データの取得に失敗しました。";
+        }
+      })
+      .catch(e => {
+        document.getElementById("table_div").innerHTML = "データの取得に失敗しました。";
+      });
+  </script>
 </body>
 </html>
