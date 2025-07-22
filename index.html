@@ -2,73 +2,120 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Bedwars 戦績（スクレイピング版）</title>
+  <title>Bedwars 戦績</title>
   <style>
     body { font-family: 'Segoe UI', 'Meiryo', sans-serif; background: #181c24; color: #fff; margin: 0; }
-    h1 { text-align: center; margin-top: 32px; letter-spacing: 2px; }
-    .table-container { margin: 40px auto; width: 95%; max-width: 1200px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: #232a36; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 24px #0008; margin-bottom: 40px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #333; text-align: center; min-width: 80px; }
-    th { background: #2d3748; color: #ffd700; font-size: 1.1em; position: sticky; top: 0; z-index: 2; }
-    tr:nth-child(even) td { background: #20232a; }
-    tr:hover td { background: #3a4256; color: #ffd700; transition: 0.2s; }
-    .summary { background: #232a36; border-radius: 10px; box-shadow: 0 4px 24px #0008; margin: 20px auto; padding: 24px; max-width: 600px; }
+    h1 { text-align: center; margin: 24px 0 8px 0; letter-spacing: 2px; }
+    .fixed-top {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #181c24e6;
+      backdrop-filter: blur(2px);
+      box-shadow: 0 2px 12px #0006;
+      padding-bottom: 8px;
+    }
+    .summary { background: #232a36; border-radius: 10px; box-shadow: 0 4px 24px #0008; margin: 12px auto 8px auto; padding: 16px; max-width: 600px; }
     .summary h2 { color: #ffd700; margin-bottom: 12px; }
     .summary span { font-size: 1.2em; margin-right: 24px; }
     .player-link { color: #ffd700; cursor: pointer; text-decoration: underline; }
     .player-link:hover { color: #fff700; }
-    @media (max-width: 800px) { th, td { font-size: 0.9em; min-width: 60px; } }
+    .filter-bar { background:#232a36; padding:8px 0 8px 0; text-align:center; border-radius: 8px; margin: 0 auto 8px auto; max-width: 1200px; }
+    .filter-bar input { margin: 0 4px; }
+    .table-container {
+      margin: 0 auto 40px auto;
+      width: 95%;
+      max-width: 1200px;
+      height: 60vh;
+      overflow-y: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 24px #0008;
+      background: #232a36;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #333; text-align: center; min-width: 80px; }
+    th {
+      background: #2d3748;
+      color: #ffd700;
+      font-size: 1.1em;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 2px 8px #0006;
+    }
+    tr:nth-child(even) td { background: #20232a; }
+    tr:hover td { background: #3a4256; color: #ffd700; transition: 0.2s; }
+    @media (max-width: 800px) {
+      th, td { font-size: 0.9em; min-width: 60px; }
+      .summary, .filter-bar, .table-container { max-width: 98vw; }
+    }
   </style>
 </head>
 <body>
-  <h1>Bedwars 戦績</h1>
-  <div class="summary" id="summary" style="display:none"></div>
-  <!-- フィルターUI -->
-  <div class="filter-bar" style="background:#232a36;padding:16px 0;text-align:center;">
-    マップ数: <input type="text" id="filter-map" style="width:80px;">
-    チーム数: <input type="text" id="filter-team" style="width:60px;">
-    モード: <input type="text" id="filter-mode" style="width:80px;">
-    イベント: <input type="text" id="filter-event" style="width:100px;">
-    参加した人: <input type="text" id="filter-player" style="width:100px;">
-    始めた時刻: <input type="text" id="filter-start" style="width:120px;">
-    終わった時刻: <input type="text" id="filter-end" style="width:120px;">
-    <button onclick="applyFilter()">絞り込み</button>
-    <button onclick="resetFilter()">リセット</button>
+  <div class="fixed-top">
+    <h1>Bedwars 戦績</h1>
+    <div class="summary" id="summary" style="display:none"></div>
+    <div class="filter-bar">
+      マップ数: <input type="text" id="filter-map" style="width:80px;">
+      チーム数: <input type="text" id="filter-team" style="width:60px;">
+      モード: <input type="text" id="filter-mode" style="width:80px;">
+      イベント: <input type="text" id="filter-event" style="width:100px;">
+      参加した人: <input type="text" id="filter-player" style="width:100px;">
+      始めた時刻: <input type="text" id="filter-start" style="width:120px;">
+      終わった時刻: <input type="text" id="filter-end" style="width:120px;">
+      <button onclick="applyFilter()">絞り込み</button>
+      <button onclick="resetFilter()">リセット</button>
+    </div>
   </div>
   <div class="table-container">
     <div id="table_div">読み込み中...</div>
   </div>
   <script>
+    // URLからuserパラメータ取得
+    function getUserParam() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('user');
+    }
+
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSNGSvnFO0Vf01tCe4a46CGk3eTPe60UCVcgiXOpJAe1Jd3-tmj-rNpbJAAlZcihaN99XgkAbIOuUIE/pubhtml?gid=0&single=true";
 
     let allRows = [];
     let header = [];
 
-    function showSummary(player) {
-      // 戦績集計
-      let games = 0, wins = 0, kills = 0;
-      let winCol = header.indexOf("勝った人");
-      let playerCol = header.indexOf("参加した人");
-      let killsCol = header.findIndex(h => h.includes("キル")); // キル数列があれば
-      let rows = [];
-      allRows.forEach(row => {
-        if (row[playerCol] && row[playerCol].includes(player)) {
-          games++;
-          if (winCol !== -1 && row[winCol] && row[winCol].includes(player)) wins++;
-          if (killsCol !== -1 && row[killsCol]) kills += parseInt(row[killsCol]) || 0;
-          rows.push(row);
-        }
-      });
-      let html = `<h2>${player} の戦績</h2>`;
-      html += `<span>参加試合数: <b>${games}</b></span>`;
-      html += `<span>勝利数: <b>${wins}</b></span>`;
-      if (killsCol !== -1) html += `<span>キル数: <b>${kills}</b></span>`;
-      html += `<hr style="margin:16px 0;">`;
+    // 個人戦績サマリー表示
+    function showUserSummary(user) {
+      // 列インデックス
+      const playerCol = header.indexOf("参加した人");
+      const killsCol = header.findIndex(h => h.includes("キル"));
+      const deathsCol = header.findIndex(h => h.includes("デス"));
+      const bedsCol = header.findIndex(h => h.includes("ベッド破壊"));
+      const bluebedCol = header.findIndex(h => h.includes("青のベッド"));
+      const teamCol = header.indexOf("チーム数");
+
+      // そのユーザーが参加した行だけ抽出
+      const userRows = allRows.filter(row => row[playerCol] && row[playerCol].split(/[、, ]/).map(n=>n.trim()).includes(user));
+      // 2チーム/4チームで分ける
+      const rows2 = userRows.filter(row => row[teamCol] === '2');
+      const rows4 = userRows.filter(row => row[teamCol] === '4');
+      // 合計計算
+      function sum(rows, col) {
+        return rows.reduce((acc, row) => acc + (parseInt(row[col]) || 0), 0);
+      }
+      // サマリーHTML
+      let html = `<h2>${user} の戦績</h2>`;
+      html += `<span>総試合数: <b>${userRows.length}</b></span>`;
+      html += `<span>総キル数: <b>${sum(userRows, killsCol)}</b></span>`;
+      html += `<span>総デス数: <b>${sum(userRows, deathsCol)}</b></span>`;
+      html += `<span>総ベッド破壊: <b>${sum(userRows, bedsCol)}</b></span>`;
+      html += `<hr style='margin:16px 0;'>`;
+      html += `<div style='margin-bottom:12px;'><b>2チーム時</b> | 試合数: ${rows2.length} | キル: ${sum(rows2, killsCol)} | デス: ${sum(rows2, deathsCol)} | ベッド破壊: ${sum(rows2, bedsCol)} | 青のベッド: ${sum(rows2, bluebedCol)}</div>`;
+      html += `<div style='margin-bottom:12px;'><b>4チーム時</b> | 試合数: ${rows4.length} | キル: ${sum(rows4, killsCol)} | デス: ${sum(rows4, deathsCol)} | ベッド破壊: ${sum(rows4, bedsCol)} | 青のベッド: ${sum(rows4, bluebedCol)}</div>`;
+      // 参加試合一覧
       html += `<b>参加した試合一覧</b><br>`;
       html += `<table><thead><tr>`;
       header.forEach(h => html += `<th>${h}</th>`);
       html += `</tr></thead><tbody>`;
-      rows.forEach(row => {
+      userRows.forEach(row => {
         html += "<tr>";
         row.forEach(cell => html += `<td>${cell}</td>`);
         html += "</tr>";
@@ -76,7 +123,13 @@
       html += "</tbody></table>";
       document.getElementById("summary").innerHTML = html;
       document.getElementById("summary").style.display = "block";
+      document.querySelector('.table-container').style.display = 'none';
       window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    // 既存のshowSummaryは個人ページ遷移に変更
+    function showSummary(player) {
+      window.location.href = `?user=${encodeURIComponent(player)}`;
     }
 
     fetch(sheetUrl)
@@ -97,16 +150,15 @@
             tr.querySelectorAll("td").forEach(td => row.push(td.textContent.trim()));
             if (row.length > 0 && row.some(cell => cell)) allRows.push(row);
           });
-          // データ取得後
-          renderTable(allRows);
-          // プレイヤー一覧を抽出
-          let playerCol = header.indexOf("参加した人");
-          let players = new Set();
-          allRows.forEach(row => {
-            if (row[playerCol]) row[playerCol].split(/[、, ]/).forEach(name => players.add(name.trim()));
-          });
-          // プレイヤー名クリックで個人戦績表示
-          window.showSummary = showSummary;
+          // userパラメータがあれば個人戦績ページ
+          const user = getUserParam();
+          if (user) {
+            showUserSummary(user);
+          } else {
+            renderTable(allRows);
+            document.getElementById("summary").style.display = "none";
+            document.querySelector('.table-container').style.display = '';
+          }
         } else {
           document.getElementById("table_div").innerHTML = "データの取得に失敗しました。";
         }
@@ -126,8 +178,8 @@
       const endVal = document.getElementById("filter-end").value.trim();
 
       // 列インデックス
-      const mapCol = header.indexOf("マップ数");
-      const teamCol = header.indexOf("チーム");
+      const mapCol = header.indexOf("マップ");
+      const teamCol = header.indexOf("チーム数");
       const modeCol = header.indexOf("モード");
       const eventCol = header.indexOf("イベント");
       const playerColIdx = header.indexOf("参加した人");
@@ -160,7 +212,7 @@
         htmlTable += "<tr>";
         row.forEach((cell, idx) => {
           if (idx === playerCol && cell) {
-            let names = cell.split(/[、, ]/).map(name => `<span class="player-link" onclick="showSummary('${name.trim()}')">${name.trim()}</span>`);
+            let names = cell.split(/[、, ]/).map(name => `<span class=\"player-link\" onclick=\"showSummary('${name.trim()}')\">${name.trim()}</span>`);
             htmlTable += `<td>${names.join(", ")}</td>`;
           } else {
             htmlTable += `<td>${cell}</td>`;
