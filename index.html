@@ -23,6 +23,18 @@
 <body>
   <h1>Bedwars 戦績</h1>
   <div class="summary" id="summary" style="display:none"></div>
+  <!-- フィルターUI -->
+  <div class="filter-bar" style="background:#232a36;padding:16px 0;text-align:center;">
+    マップ数: <input type="text" id="filter-map" style="width:80px;">
+    チーム数: <input type="text" id="filter-team" style="width:60px;">
+    モード: <input type="text" id="filter-mode" style="width:80px;">
+    イベント: <input type="text" id="filter-event" style="width:100px;">
+    参加した人: <input type="text" id="filter-player" style="width:100px;">
+    始めた時刻: <input type="text" id="filter-start" style="width:120px;">
+    終わった時刻: <input type="text" id="filter-end" style="width:120px;">
+    <button onclick="applyFilter()">絞り込み</button>
+    <button onclick="resetFilter()">リセット</button>
+  </div>
   <div class="table-container">
     <div id="table_div">読み込み中...</div>
   </div>
@@ -85,31 +97,14 @@
             tr.querySelectorAll("td").forEach(td => row.push(td.textContent.trim()));
             if (row.length > 0 && row.some(cell => cell)) allRows.push(row);
           });
+          // データ取得後
+          renderTable(allRows);
           // プレイヤー一覧を抽出
           let playerCol = header.indexOf("参加した人");
           let players = new Set();
           allRows.forEach(row => {
             if (row[playerCol]) row[playerCol].split(/[、, ]/).forEach(name => players.add(name.trim()));
           });
-          // テーブル生成
-          let htmlTable = "<table><thead><tr>";
-          header.forEach(h => htmlTable += `<th>${h}</th>`);
-          htmlTable += "</tr></thead><tbody>";
-          allRows.forEach(row => {
-            htmlTable += "<tr>";
-            row.forEach((cell, idx) => {
-              // 参加した人列はリンク化
-              if (idx === playerCol && cell) {
-                let names = cell.split(/[、, ]/).map(name => `<span class="player-link" onclick="showSummary('${name.trim()}')">${name.trim()}</span>`);
-                htmlTable += `<td>${names.join(", ")}</td>`;
-              } else {
-                htmlTable += `<td>${cell}</td>`;
-              }
-            });
-            htmlTable += "</tr>";
-          });
-          htmlTable += "</tbody></table>";
-          document.getElementById("table_div").innerHTML = htmlTable;
           // プレイヤー名クリックで個人戦績表示
           window.showSummary = showSummary;
         } else {
@@ -119,6 +114,70 @@
       .catch(e => {
         document.getElementById("table_div").innerHTML = "データの取得に失敗しました。";
       });
+
+    // フィルター適用関数
+    function applyFilter() {
+      const mapVal = document.getElementById("filter-map").value.trim();
+      const teamVal = document.getElementById("filter-team").value.trim();
+      const modeVal = document.getElementById("filter-mode").value.trim();
+      const eventVal = document.getElementById("filter-event").value.trim();
+      const playerVal = document.getElementById("filter-player").value.trim();
+      const startVal = document.getElementById("filter-start").value.trim();
+      const endVal = document.getElementById("filter-end").value.trim();
+
+      // 列インデックス
+      const mapCol = header.indexOf("マップ数");
+      const teamCol = header.indexOf("チーム");
+      const modeCol = header.indexOf("モード");
+      const eventCol = header.indexOf("イベント");
+      const playerColIdx = header.indexOf("参加した人");
+      const startCol = header.indexOf("始めた時刻");
+      const endCol = header.indexOf("終わった時刻");
+
+      // フィルタリング
+      let filtered = allRows.filter(row => {
+        // 完全一致
+        if (mapVal && row[mapCol] !== mapVal) return false;
+        if (teamVal && row[teamCol] !== teamVal) return false;
+        if (modeVal && row[modeCol] !== modeVal) return false;
+        // 部分一致
+        if (eventVal && (!row[eventCol] || !row[eventCol].includes(eventVal))) return false;
+        if (playerVal && (!row[playerColIdx] || !row[playerColIdx].includes(playerVal))) return false;
+        if (startVal && (!row[startCol] || !row[startCol].includes(startVal))) return false;
+        if (endVal && (!row[endCol] || !row[endCol].includes(endVal))) return false;
+        return true;
+      });
+      renderTable(filtered);
+    }
+
+    // テーブル再描画
+    function renderTable(rows) {
+      let playerCol = header.indexOf("参加した人");
+      let htmlTable = "<table><thead><tr>";
+      header.forEach(h => htmlTable += `<th>${h}</th>`);
+      htmlTable += "</tr></thead><tbody>";
+      rows.forEach(row => {
+        htmlTable += "<tr>";
+        row.forEach((cell, idx) => {
+          if (idx === playerCol && cell) {
+            let names = cell.split(/[、, ]/).map(name => `<span class="player-link" onclick="showSummary('${name.trim()}')">${name.trim()}</span>`);
+            htmlTable += `<td>${names.join(", ")}</td>`;
+          } else {
+            htmlTable += `<td>${cell}</td>`;
+          }
+        });
+        htmlTable += "</tr>";
+      });
+      htmlTable += "</tbody></table>";
+      document.getElementById("table_div").innerHTML = htmlTable;
+      window.showSummary = showSummary;
+    }
+
+    // リセット
+    function resetFilter() {
+      document.querySelectorAll('.filter-bar input').forEach(input => input.value = "");
+      renderTable(allRows);
+    }
   </script>
 </body>
 </html>
