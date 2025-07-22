@@ -4,24 +4,120 @@
   <meta charset="UTF-8">
   <title>Bedwars 戦績</title>
   <style>
+    /* --- 既存のスタイル --- */
     body { font-family: 'Segoe UI', 'Meiryo', sans-serif; background: #181c24; color: #fff; margin: 0; }
     h1 { text-align: center; margin: 24px 0 8px 0; letter-spacing: 2px; }
-    .fixed-top {
+    /* --- ナビバー --- */
+    .nav-bar {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      background: #232a36;
+      padding: 12px 0;
+      box-shadow: 0 2px 8px #0006;
       position: sticky;
       top: 0;
-      z-index: 100;
-      background: #181c24e6;
-      backdrop-filter: blur(2px);
-      box-shadow: 0 2px 12px #0006;
-      padding-bottom: 8px;
+      z-index: 200;
     }
+    .nav-bar button {
+      background: #2d3748;
+      color: #ffd700;
+      border: none;
+      padding: 8px 24px;
+      border-radius: 6px;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav-bar button.active, .nav-bar button:hover {
+      background: #ffd700;
+      color: #232a36;
+    }
+    /* --- 新フィルター --- */
+    .simple-filter {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 12px 0 16px 0;
+      flex-wrap: wrap;
+    }
+    .simple-filter input, .simple-filter select {
+      background: #232a36;
+      color: #ffd700;
+      border: 1px solid #444;
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-size: 1em;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .simple-filter input:focus, .simple-filter select:focus {
+      border: 1.5px solid #ffd700;
+    }
+    .simple-filter button {
+      background: #ffd700;
+      color: #232a36;
+      border: none;
+      border-radius: 5px;
+      padding: 6px 18px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .simple-filter button:hover {
+      background: #fff700;
+      color: #181c24;
+    }
+    /* --- ランキング --- */
+    .ranking-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 18px 0 12px 0;
+      flex-wrap: wrap;
+    }
+    .ranking-controls input, .ranking-controls select {
+      background: #232a36;
+      color: #ffd700;
+      border: 1px solid #444;
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-size: 1em;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .ranking-controls input:focus, .ranking-controls select:focus {
+      border: 1.5px solid #ffd700;
+    }
+    .ranking-table {
+      margin: 0 auto 40px auto;
+      width: 95%;
+      max-width: 700px;
+      border-radius: 10px;
+      box-shadow: 0 4px 24px #0008;
+      background: #232a36;
+      overflow: hidden;
+    }
+    .ranking-table table { width: 100%; border-collapse: collapse; }
+    .ranking-table th, .ranking-table td { padding: 10px 8px; border-bottom: 1px solid #333; text-align: center; }
+    .ranking-table th {
+      background: #2d3748;
+      color: #ffd700;
+      font-size: 1.1em;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 2px 8px #0006;
+    }
+    .ranking-table tr:nth-child(even) td { background: #20232a; }
+    .ranking-table tr:hover td { background: #3a4256; color: #ffd700; transition: 0.2s; }
+    /* --- 既存のテーブル・サマリー・レスポンシブ --- */
+    .fixed-top { display: none; } /* 旧ヘッダーは非表示に */
     .summary { background: #232a36; border-radius: 10px; box-shadow: 0 4px 24px #0008; margin: 12px auto 8px auto; padding: 16px; max-width: 600px; }
     .summary h2 { color: #ffd700; margin-bottom: 12px; }
     .summary span { font-size: 1.2em; margin-right: 24px; }
     .player-link { color: #ffd700; cursor: pointer; text-decoration: underline; }
     .player-link:hover { color: #fff700; }
-    .filter-bar { background:#232a36; padding:8px 0 8px 0; text-align:center; border-radius: 8px; margin: 0 auto 8px auto; max-width: 1200px; }
-    .filter-bar input { margin: 0 4px; }
     .table-container {
       margin: 0 auto 40px auto;
       width: 95%;
@@ -47,28 +143,50 @@
     tr:hover td { background: #3a4256; color: #ffd700; transition: 0.2s; }
     @media (max-width: 800px) {
       th, td { font-size: 0.9em; min-width: 60px; }
-      .summary, .filter-bar, .table-container { max-width: 98vw; }
+      .summary, .nav-bar, .simple-filter, .ranking-table, .table-container { max-width: 98vw; }
     }
   </style>
 </head>
 <body>
-  <div class="fixed-top">
-    <h1>Bedwars 戦績</h1>
-    <div class="summary" id="summary" style="display:none"></div>
-    <div class="filter-bar">
-      マップ数: <input type="text" id="filter-map" style="width:80px;">
-      チーム数: <input type="text" id="filter-team" style="width:60px;">
-      モード: <input type="text" id="filter-mode" style="width:80px;">
-      イベント: <input type="text" id="filter-event" style="width:100px;">
-      参加した人: <input type="text" id="filter-player" style="width:100px;">
-      始めた時刻: <input type="text" id="filter-start" style="width:120px;">
-      終わった時刻: <input type="text" id="filter-end" style="width:120px;">
+  <div class="nav-bar">
+    <button id="btn-recent" class="active" onclick="showPage('recent')">最新の戦績</button>
+    <button id="btn-ranking" onclick="showPage('ranking')">ランキング</button>
+  </div>
+  <div id="recent-page">
+    <div class="simple-filter">
+      <input type="text" id="filter-player" placeholder="プレイヤー名">
+      <input type="text" id="filter-map" placeholder="マップ">
+      <select id="filter-team">
+        <option value="">チーム数</option>
+        <option value="2">2</option>
+        <option value="4">4</option>
+      </select>
+      <input type="text" id="filter-mode" placeholder="モード">
       <button onclick="applyFilter()">絞り込み</button>
       <button onclick="resetFilter()">リセット</button>
     </div>
+    <div class="table-container">
+      <div id="table_div">読み込み中...</div>
+    </div>
+    <div class="summary" id="summary" style="display:none"></div>
   </div>
-  <div class="table-container">
-    <div id="table_div">読み込み中...</div>
+  <div id="ranking-page" style="display:none;">
+    <div class="ranking-controls">
+      <input type="text" id="search-player" placeholder="プレイヤー名で検索" oninput="renderRanking()">
+      <select id="ranking-type" onchange="renderRanking()">
+        <option value="kills">キル数</option>
+        <option value="wins">勝利数</option>
+        <option value="deaths">デス数</option>
+        <option value="beds">ベッド破壊数</option>
+        <option value="bluebed">青のベッド破壊数</option>
+      </select>
+      <select id="ranking-period" onchange="renderRanking()">
+        <option value="all">全期間</option>
+        <option value="1m">直近1ヶ月</option>
+        <option value="3m">直近3ヶ月</option>
+      </select>
+    </div>
+    <div class="ranking-table" id="ranking-table"></div>
   </div>
   <script>
     // URLからuserパラメータ取得
@@ -132,6 +250,14 @@
       window.location.href = `?user=${encodeURIComponent(player)}`;
     }
 
+    // --- ページ切り替え ---
+    function showPage(page) {
+      document.getElementById('recent-page').style.display = (page === 'recent') ? '' : 'none';
+      document.getElementById('ranking-page').style.display = (page === 'ranking') ? '' : 'none';
+      document.getElementById('btn-recent').classList.toggle('active', page === 'recent');
+      document.getElementById('btn-ranking').classList.toggle('active', page === 'ranking');
+    }
+
     fetch(sheetUrl)
       .then(res => res.text())
       .then(html => {
@@ -158,6 +284,8 @@
             renderTable(allRows);
             document.getElementById("summary").style.display = "none";
             document.querySelector('.table-container').style.display = '';
+            showPage('recent');
+            renderRanking();
           }
         } else {
           document.getElementById("table_div").innerHTML = "データの取得に失敗しました。";
@@ -169,34 +297,21 @@
 
     // フィルター適用関数
     function applyFilter() {
+      const playerVal = document.getElementById("filter-player").value.trim();
       const mapVal = document.getElementById("filter-map").value.trim();
       const teamVal = document.getElementById("filter-team").value.trim();
       const modeVal = document.getElementById("filter-mode").value.trim();
-      const eventVal = document.getElementById("filter-event").value.trim();
-      const playerVal = document.getElementById("filter-player").value.trim();
-      const startVal = document.getElementById("filter-start").value.trim();
-      const endVal = document.getElementById("filter-end").value.trim();
-
       // 列インデックス
+      const playerColIdx = header.indexOf("参加した人");
       const mapCol = header.indexOf("マップ");
       const teamCol = header.indexOf("チーム数");
       const modeCol = header.indexOf("モード");
-      const eventCol = header.indexOf("イベント");
-      const playerColIdx = header.indexOf("参加した人");
-      const startCol = header.indexOf("始めた時刻");
-      const endCol = header.indexOf("終わった時刻");
-
       // フィルタリング
       let filtered = allRows.filter(row => {
-        // 完全一致
+        if (playerVal && (!row[playerColIdx] || !row[playerColIdx].includes(playerVal))) return false;
         if (mapVal && row[mapCol] !== mapVal) return false;
         if (teamVal && row[teamCol] !== teamVal) return false;
         if (modeVal && row[modeCol] !== modeVal) return false;
-        // 部分一致
-        if (eventVal && (!row[eventCol] || !row[eventCol].includes(eventVal))) return false;
-        if (playerVal && (!row[playerColIdx] || !row[playerColIdx].includes(playerVal))) return false;
-        if (startVal && (!row[startCol] || !row[startCol].includes(startVal))) return false;
-        if (endVal && (!row[endCol] || !row[endCol].includes(endVal))) return false;
         return true;
       });
       renderTable(filtered);
@@ -225,9 +340,63 @@
       window.showSummary = showSummary;
     }
 
+    // --- ランキング集計 ---
+    function renderRanking() {
+      if (!header.length || !allRows.length) return;
+      const type = document.getElementById('ranking-type').value;
+      const period = document.getElementById('ranking-period').value;
+      const search = document.getElementById('search-player').value.trim();
+      // 列インデックス
+      const playerCol = header.indexOf("参加した人");
+      const killsCol = header.findIndex(h => h.includes("キル"));
+      const deathsCol = header.findIndex(h => h.includes("デス"));
+      const bedsCol = header.findIndex(h => h.includes("ベッド破壊"));
+      const bluebedCol = header.findIndex(h => h.includes("青のベッド"));
+      const winCol = header.indexOf("勝った人");
+      const dateCol = header.findIndex(h => h.includes("始めた時刻"));
+      // 期間フィルタ
+      let filteredRows = allRows;
+      if (period !== 'all' && dateCol !== -1) {
+        const now = new Date();
+        let from = new Date();
+        if (period === '1m') from.setMonth(now.getMonth() - 1);
+        if (period === '3m') from.setMonth(now.getMonth() - 3);
+        filteredRows = allRows.filter(row => {
+          const d = new Date(row[dateCol].replace(/\//g,'-'));
+          return d >= from && d <= now;
+        });
+      }
+      // プレイヤーごとに集計
+      let stats = {};
+      filteredRows.forEach(row => {
+        if (!row[playerCol]) return;
+        row[playerCol].split(/[、, ]/).map(n=>n.trim()).forEach(name => {
+          if (!name) return;
+          if (!stats[name]) stats[name] = {kills:0, deaths:0, beds:0, bluebed:0, wins:0};
+          stats[name].kills += (parseInt(row[killsCol])||0);
+          stats[name].deaths += (parseInt(row[deathsCol])||0);
+          stats[name].beds += (parseInt(row[bedsCol])||0);
+          stats[name].bluebed += (parseInt(row[bluebedCol])||0);
+          if (winCol !== -1 && row[winCol] && row[winCol].includes(name)) stats[name].wins++;
+        });
+      });
+      // 検索フィルタ
+      let statArr = Object.entries(stats);
+      if (search) statArr = statArr.filter(([name]) => name.includes(search));
+      // ソート
+      statArr.sort((a,b) => b[1][type] - a[1][type]);
+      // テーブル描画
+      let html = '<table><thead><tr><th>順位</th><th>プレイヤー</th><th>キル</th><th>デス</th><th>勝利</th><th>ベッド破壊</th><th>青のベッド</th></tr></thead><tbody>';
+      statArr.forEach(([name, s], i) => {
+        html += `<tr><td>${i+1}</td><td><span class="player-link" onclick="showSummary('${name}')">${name}</span></td><td>${s.kills}</td><td>${s.deaths}</td><td>${s.wins}</td><td>${s.beds}</td><td>${s.bluebed}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('ranking-table').innerHTML = html;
+    }
+
     // リセット
     function resetFilter() {
-      document.querySelectorAll('.filter-bar input').forEach(input => input.value = "");
+      document.querySelectorAll('.simple-filter input, .simple-filter select').forEach(input => input.value = "");
       renderTable(allRows);
     }
   </script>
